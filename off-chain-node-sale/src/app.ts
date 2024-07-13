@@ -2,7 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import onRequestReceived from "./middlewares/onRequestReceived"
 import { claimRewards, distributeRewards, purchaseShares } from './controllers/nodeOwnerController';
-import NodeLicensingRoute from './routes/nodeLicensingRoute'
+import { CreateLicense, CreateLicenseBatch, PurchaseLicenseFraction } from './controllers/LicenseController';
 
 const app = express()
 
@@ -17,11 +17,16 @@ app.options('*', cors(corsOptions));
 app.use(onRequestReceived)
 app.use(express.json());
 
+
+app.post('/buy-license-fraction', PurchaseLicenseFraction)
+app.post('/create-batch', CreateLicenseBatch)
+app.post('/create-license', CreateLicense)
+
+
 app.post("/purchase", purchaseShares);
 app.post("/distribute", distributeRewards);
 app.post("/claim", claimRewards);
 
-app.use('/node-license', NodeLicensingRoute)
 
 app.use(function (req, res, next) {
     console.log("Not Found")

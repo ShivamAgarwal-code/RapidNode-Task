@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn, OneToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn, OneToOne, ManyToOne } from 'typeorm';
 import { NodeFractionalLicense } from './NodeFractionalLicense';
 import { NodeLicenseBatch } from './NodeLicenseBatch';
 
@@ -7,11 +7,20 @@ export class NodeLicense {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToMany(() => NodeFractionalLicense, fractionalLicense => fractionalLicense.nodeLicense)
-  fractionalLicenses: NodeFractionalLicense[];
+  @Column({ type: 'decimal', precision: 10, scale: 5 })
+  price_per_fraction: number
 
-  @OneToOne(() => NodeLicenseBatch, nodeLicenseBatch => nodeLicenseBatch.nodeLicense)
-  nodeLicenseBatch: NodeLicenseBatch
+  @Column({ type: 'bigint' })
+  total_fractions: number
+
+  @Column({ type: 'bigint' })
+  available_fractions: number
+
+  @OneToMany('NodeFractionalLicense', 'license', { onDelete: 'RESTRICT' })
+  fractional_licenses: NodeFractionalLicense[];
+
+  @ManyToOne('NodeLicenseBatch', 'licenses', { onDelete: 'RESTRICT' })
+  license_batch: NodeLicenseBatch
 
   @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
