@@ -9,7 +9,7 @@ import { NFTBatch } from './entities/NFTBatch';
 const app = express()
 
 const corsOptions = {
-    origin: ['http://localhost:5173', 'http://192.168.1.119:5173'],
+    origin: ['http://localhost:5173'],
     methods: ['POST'],
     allowedHeaders: ['Content-Type', 'address']
 };
@@ -23,34 +23,26 @@ const userRepository = dataSource.getRepository(NFTOwner);
 const fractionalNFTRepository = dataSource.getRepository(FractionalNFT);
 const batchRepository = dataSource.getRepository(NFTBatch);
 
-app.post('/purchase', async (req, res) => {
+app.post('/purchase', async (req: ICustomRequest, res) => {
     const dbTransaction = dataSource.createQueryRunner()
     try {
-        const { walletAddress, chain, chainId, quantity } = req.body;
+        const { body: { chain, chainId, quantity }, user } = req;
+
+        console.log({ chain, chainId, quantity })
 
         const contract = {
             fractionalNFTContractAddress: 'fractionalNFTContractAddress',
             fractionalNFTTokenID: 'fractionalNFTTokenID',
-        }
+        } 
 
-        const fractions = await fractionalNFTRepository.findOne({ where: { owner: { walletAddress } } });
-        // if (fractions) return res.status(401).send({ message: "You have some fractions already." })
-        if (!walletAddress) return res.status(401).send({ message: "Your address is invalid" })
-
-        await dbTransaction.startTransaction()
-        let user = await userRepository.findOne({ where: { walletAddress } });
-        if (!user) {
-            user = new NFTOwner();
-            user.walletAddress = walletAddress;
-            await dbTransaction.manager.save(user);
-        }
+        await dbTransaction.startTransaction() 
 
         const fractionalNFT = new FractionalNFT();
         fractionalNFT.owner = user;
         fractionalNFT.fractionalNFTContractAddress = contract.fractionalNFTContractAddress;
         fractionalNFT.fractionalNFTTokenID = contract.fractionalNFTTokenID;
         fractionalNFT.chain = chain;
-        fractionalNFT.chainID = chainId;
+        fractionalNFT.chainID = String(chainId);
         fractionalNFT.quantity = quantity
 
         let batch = await batchRepository.findOne({ where: { isFilled: false }, relations: ['fractionalNFTs'] });
@@ -74,7 +66,7 @@ app.post('/purchase', async (req, res) => {
         batch = await dbTransaction.manager.save(batch);
 
         await dbTransaction.commitTransaction()
-        res.send({ message: "Succesful" });
+        res.json({ message: `Succesfully purchase ${quantity} nodes` });
     } catch (error) {
         await dbTransaction.rollbackTransaction()
         console.log({ error })
@@ -87,13 +79,13 @@ app.post('/purchase', async (req, res) => {
 
 app.get('/batches', async (req, res) => {
     const batches = await batchRepository.find({ relations: ['fractionalNFTs', 'fractionalNFTs.owner'] });
-    res.send(batches);
+    res.json(batches);
 });
 
 app.get('/fractions', async (req: ICustomRequest, res) => {
     const { user: { walletAddress } } = req
     const fractions = await fractionalNFTRepository.find({ where: { owner: { walletAddress } } });
-    res.send(fractions);
+    res.json(fractions);
 });
 
 app.post('/mint', () => {
